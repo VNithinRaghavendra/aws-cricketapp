@@ -1,0 +1,41 @@
+name: Deploy React App to AWS
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  AWS_REGION: ap-south-1
+  S3_BUCKET: mycricketapp-123
+  CLOUDFRONT_DISTRIBUTION_ID: E3RAJVFI9Q3AU8
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build React App
+        run: npm run build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload files to S3
+        run: aws s3 sync dist s3://${{ env.S3_BUCKET }} --delete
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          aws cloudfront create-invalidation \
+          --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+          --paths "/*"
